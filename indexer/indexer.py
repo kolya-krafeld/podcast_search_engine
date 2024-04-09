@@ -10,11 +10,11 @@ ELASTIC_PASSWORD = os.getenv("ES_PASSWORD")
 
 client = Elasticsearch(
   "https://localhost:9200",
-  ca_certs="../http_ca.crt",
+  ca_certs="./http_ca.crt",
   basic_auth=("elastic", ELASTIC_PASSWORD)
 )
 
-folder_path = "../data/podcast-transcripts"
+folder_path = "./data/podcast-transcripts"
 
 transcript_snippets = []
 
