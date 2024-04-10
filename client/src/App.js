@@ -1,23 +1,40 @@
-import logo from './logo.svg';
-import './App.css';
+import "./App.css";
+import React, { useState, useEffect } from "react";
+import SearchBar from "./components/SearchBar";
+import PodcastList from './components/PodcastList';
 
 function App() {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const searchPodcastSnippets = async (searchTerm) => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/search?q=" + searchTerm);
+      const data = await response.json();
+      console.log(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <SearchBar
+        placeholder={"Search for podcast content..."}
+        value={searchTerm}
+        handleInput={(e) => setSearchTerm(e.target.value)}
+        handleSubmit={(e) => {
+          if (e.key === "Enter") {
+            searchPodcastSnippets(searchTerm);
+            setSearchTerm("");
+            e.preventDefault();
+          }
+        }}
+      />
+      <PodcastList
+        entries={[{name: "Podcast Name", artists: [{name: "Artist Name"}]}]}
+        tracks
+        loading={false}
+      />
     </div>
   );
 }

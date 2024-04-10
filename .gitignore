@@ -21,3 +21,13 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Igonre all data files
+/data/*
+
+.env
+http_ca.crt
+
+app/__pycache__/*
+
+.idea/*
