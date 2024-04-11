@@ -4,12 +4,30 @@ import os
 
 load_dotenv()
 
-ELASTIC_PASSWORD = os.getenv("ES_PASSWORD")
+CLOUD_ENDPOINT = os.getenv("CLOUD_ENDPOINT")
+API_KEY = os.getenv("API_KEY")
+
+index_name = "podcast"
 
 client = Elasticsearch(
-  "https://localhost:9200",
-  ca_certs="./http_ca.crt",
-  basic_auth=("elastic", ELASTIC_PASSWORD)
+  CLOUD_ENDPOINT, 
+  API_KEY
 )
 
-print(client.search(index="podcast_tests", q="snow"))
+client = Elasticsearch(
+  CLOUD_ENDPOINT, 
+  API_KEY
+)
+
+query = {
+    "query": {
+        "match": {
+            "transcript_text": {
+                "query": "green grass",
+                "operator": "and"
+            }
+        }
+    }
+}
+
+print(client.search(index= index_name, body=query))

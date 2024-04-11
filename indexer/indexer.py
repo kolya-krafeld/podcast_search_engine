@@ -2,20 +2,42 @@ from elasticsearch import Elasticsearch, helpers
 import os
 import json
 from dotenv import load_dotenv
-from indexMapping import indexPodcast
+import time
 
 load_dotenv()
 
+start_time_program = time.time()
 
-ELASTIC_PASSWORD = os.getenv("ES_PASSWORD")
+CLOUD_ENDPOINT = os.getenv("CLOUD_ENDPOINT")
+API_KEY = os.getenv("API_KEY")
+
 
 client = Elasticsearch(
-    "https://localhost:9200",
-    basic_auth=("elastic", ELASTIC_PASSWORD),
-    ca_certs="./http_ca.crt",
+  CLOUD_ENDPOINT, 
+  API_KEY
 )
 
 folder_path = "./data/podcast-transcripts"
+index_name = "podcast"
+
+# Check if the index already exists
+if not client.indices.exists(index=index_name):
+    # Create the index with specific settings
+    client.indices.create(
+        index=index_name,
+        body={
+            "settings": {"index": {"number_of_shards": 3, "number_of_replicas": 0}},
+            "mappings": {
+                "properties": {
+                    "show_id": {"type": "keyword", "index": False},
+                    "episode_id": {"type": "keyword", "index": False},
+                    "transcript_text": {"type": "text", "index": True},
+                    "start_time": {"type": "float", "index": False},
+                    "end_time": {"type": "float", "index": False}
+                }
+            },
+        },
+    )
 
 transcript_snippets = []
 
@@ -25,9 +47,6 @@ for root, dirs, files in os.walk(folder_path):
         if file_name.endswith(".json"):
             show_id = root.split("/")[-1].split("show_")[-1]
             episode_id = file_name.split(".json")[0]
-            # print("Show:", show_id)
-            # print("File:", root, file_name)
-
             with open(os.path.join(root, file_name)) as f:
                 # Read content of file
                 json_data = json.load(f)
@@ -52,11 +71,17 @@ for root, dirs, files in os.walk(folder_path):
                             "end_time": end_time,
                         }
                         transcript_snippets.append(snippet)
+     
+                        if len(transcript_snippets) >= 50000:
+                            helpers.bulk(client, transcript_snippets, index=index_name)
+                            print('Bulk done')
+                            transcript_snippets = []
+       
 
 
-# Upload the transcript snippets to Elasticsearch
-helpers.bulk(client, transcript_snippets, index="podcast_tests")
+# Upload the remaining transcript snippets to Elasticsearch
+helpers.bulk(client, transcript_snippets, index=index_name)
 
-# Looking into defining index 
-#client.indices.create(index= 'podcast_tests', mappings = indexPodcast)
-#helpers.bulk(client, transcript_snippets, index='podcast_tests')
+total_duration = time.time() - start_time_program
+
+print(f"Indexing Duration: {round(total_duration)} seconds")
