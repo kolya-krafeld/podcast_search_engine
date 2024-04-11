@@ -20,6 +20,8 @@ client = Elasticsearch(
 folder_path = "./data/podcast-transcripts"
 index_name = "podcast"
 
+# TODO: 1. make sure that when adding the same document twice, it only gets added once - A solution could be to generate an ID for the documents - MELI
+
 # Check if the index already exists
 if not client.indices.exists(index=index_name):
     # Create the index with specific settings
@@ -41,6 +43,12 @@ if not client.indices.exists(index=index_name):
 
 transcript_snippets = []
 
+# TODO 2: check size podcast: if the size is less than half, merge it with previous one. If it's bigger then we make a new document. 
+
+# TODO 3: given a time, generate the documents 
+# 30s, 2 minutes, 5minutes, 
+
+# TODO 4: modify code so that it allows to do the overlap window of 30 seconds - MELI 
 for root, dirs, files in os.walk(folder_path):
     # Loop over all json files in the folder
     for file_name in files:
