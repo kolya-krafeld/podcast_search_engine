@@ -11,12 +11,7 @@ index_name = "podcast"
 
 client = Elasticsearch(
   CLOUD_ENDPOINT, 
-  API_KEY
-)
-
-client = Elasticsearch(
-  CLOUD_ENDPOINT, 
-  API_KEY
+  api_key = API_KEY
 )
 
 query = {
