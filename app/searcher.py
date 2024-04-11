@@ -70,19 +70,19 @@ def get_incomes():
     hits = search_result["hits"]["hits"]
 
     # Map all hits from the same show and episode to the same dictionary
-    results = {}
+    formatted_result = {}
     for hit in hits:
         show_id = hit["_source"]["show_id"]
         episode_id = hit["_source"]["episode_id"]
-        if show_id not in results:
-            results[show_id] = {
+        if show_id not in formatted_result:
+            formatted_result[show_id] = {
                "show_name": metadata[episode_id]["show_name"],
                "show_description": metadata[episode_id]["show_description"],
                "publisher": metadata[episode_id]["publisher"],
             }
 
-        if episode_id not in results[show_id]:
-            results[show_id][episode_id] = []
+        if episode_id not in formatted_result[show_id]:
+            formatted_result[show_id][episode_id] = []
         entry = {
             "transcript_text": hit["_source"]["transcript_text"],
             "start_time": hit["_source"]["start_time"],
@@ -92,10 +92,33 @@ def get_incomes():
             "language": metadata[episode_id]["language"],
             "rss_link": metadata[episode_id]["rss_link"],
         }
-        results[show_id][episode_id].append(entry)
+        formatted_result[show_id][episode_id].append(entry)
     
+    # Unformatted results
+    unformatted_results = []
+    for hit in search_result["hits"]["hits"]:
+        show_id = hit["_source"]["show_id"]
+        episode_id = hit["_source"]["episode_id"]
+        entry = {
+            "show_id": show_id,
+            "episode_id": episode_id,
+            "transcript_text": hit["_source"]["transcript_text"],
+            "start_time": hit["_source"]["start_time"],
+            "end_time": hit["_source"]["end_time"],
+            "episode_name": metadata[episode_id]["episode_name"],
+            "episode_description": metadata[episode_id]["episode_description"],
+            "language": metadata[episode_id]["language"],
+            "rss_link": metadata[episode_id]["rss_link"],
+             "show_name": metadata[episode_id]["show_name"],
+               "show_description": metadata[episode_id]["show_description"],
+               "publisher": metadata[episode_id]["publisher"],
+        }
+        unformatted_results.append(entry)
 
-
-    response = jsonify(format_results(results))
+    results = {
+       "formated_results": format_results(formatted_result),
+       "unformated_results": unformatted_results
+    }
+    response = jsonify(results)
     response.headers.add("Access-Control-Allow-Origin", "*")
     return response

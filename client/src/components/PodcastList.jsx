@@ -1,93 +1,80 @@
 import React from "react";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import IconButton from "@mui/material/IconButton";
 
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemSecondaryAction from "@mui/material/ListItemSecondaryAction";
-import ListItemText from "@mui/material/ListItemText";
-import ListItemAvatar from "@mui/material/ListItemAvatar";
-import Checkbox from "@mui/material/Checkbox";
-import Avatar from "@mui/material/Avatar";
-import Skeleton from "@mui/material/Skeleton";
+const toHHMMSS = (secs) => {
+  var sec_num = parseInt(secs, 10);
+  var hours = Math.floor(sec_num / 3600);
+  var minutes = Math.floor(sec_num / 60) % 60;
+  var seconds = sec_num % 60;
+
+  return [hours, minutes, seconds]
+    .map((v) => (v < 10 ? "0" + v : v))
+    .filter((v, i) => v !== "00" || i > 0)
+    .join(":");
+};
 
 const PodcastList = (props) => {
-  const { entries, tracks, toggleSelection, loading } = props;
-
-  const getArtistsList = (artists) => {
-    return artists.map((artist) => artist.name).join(", ");
-  };
+  const { entries } = props;
   return (
     <div>
-      {loading ? (
-        //Loading Skeleton
-        <List
-          dense
-          sx={{
-            marginBottom: "6rem",
-          }}
-        >
-          {[0, 1, 2, 3, 4, 5].map((item) => (
-            <ListItem key={item}>
-              <ListItemAvatar>
-                <Skeleton
-                  variant={tracks ? "rect" : "circle"}
-                  width={40}
-                  height={40}
-                  animation="pulse"
-                  sx={{ backgroundColor: "#252020" }}
-                />
-              </ListItemAvatar>
-              <ListItemText>
-                <Skeleton
-                  variant="text"
-                  animation="pulse"
-                  sx={{ backgroundColor: "#252020" }}
-                />
-
-                <Skeleton
-                  variant="text"
-                  animation="pulse"
-                  sx={{ backgroundColor: "#252020" }}
-                />
-              </ListItemText>
-            </ListItem>
-          ))}
-        </List>
-      ) : (
-        <List
-          dense
-          sx={{
-            marginBottom: "6rem",
-          }}
-        >
-          {entries
-            ? entries.map((entry) => {
-                return (
-                  <ListItem
-                    key={entry.id}
-                    button
-                    onClick={() => toggleSelection(entry)}
-                  >
-                    <ListItemAvatar>
-                      {/* <Avatar
-                        src={entry?.images[2]?.url}
-                        variant={tracks ? "square" : null}
-                      /> */}
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={entry.name}
-                      secondary={tracks ? getArtistsList(entry.artists) : null}
-                    />
-                    <ListItemSecondaryAction
-                      onClick={() => toggleSelection(entry)}
+      {entries
+        ? entries.map((entry) => (
+            <div>
+              <div className="collapse text-white !overflow-visible">
+                <input type="checkbox" name="my-accordion-1" />
+                <div className="collapse-title text-xl font-medium">
+                  <div className="float-left">
+                  <div className="avatar float-left">
+                    <div className="w-16 rounded">
+                      <img src="https://daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg" />
+                    </div>
+                  </div>
+                  <div className="float-left ml-4">
+                    <p className="text-lg">{entry.episode_name}</p>
+                    <p className="text-sm text-gray-400">{entry.show_name}</p>
+                  </div>
+                  </div>
+                  <div className="float-right">
+                    <IconButton
+                      className="!overflow-visible play_button hover:bg-slate-500"
+                      aria-label="play snippet"
+                      color="primary"
+                      onClick={() =>
+                        window
+                          .open(
+                            `https://open.spotify.com/episode/${
+                              entry.episode_id
+                            }?t=${entry.start_time.split(".")[0]}`,
+                            "_blank"
+                          )
+                          .focus()
+                      }
                     >
-                      <Checkbox edge="end" checked={entry.selected} />
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                );
-              })
-            : ""}
-        </List>
-      )}
+                      <PlayArrowIcon sx={{ color: "white" }} />
+                    </IconButton>
+                  </div>
+                </div>
+                <div className="collapse-content ">
+                  <p className="text-gray-400 text-sm mb-5 line-clamp-3">{entry.episode_description}</p>
+                  <p className="font-semibold text-basic mb-1.5">Transcript</p>
+                  <p className="font-medium text-sm mb-1 hover:underline cursor-pointer"><a onClick={() =>
+                        window
+                          .open(
+                            `https://open.spotify.com/episode/${
+                              entry.episode_id
+                            }?t=${entry.start_time.split(".")[0]}`,
+                            "_blank"
+                          )
+                          .focus()
+                      }>{toHHMMSS(entry.start_time.split(".")[0])}</a></p>
+                  <p className="text-gray-400 text-sm">{entry.transcript_text}</p>
+                </div>
+              </div>
+              <div className="divider my-0"></div>
+            </div>
+          ))
+        : null}
     </div>
   );
 };
