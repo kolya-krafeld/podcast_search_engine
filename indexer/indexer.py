@@ -61,11 +61,34 @@ class PodcastTranscriptIndexer:
         # Upload any remaining documents
         if len(transcript_snippets) > 0:
             self.bulk_upload_documents(transcript_snippets)
+    
+    def append_snippets(self, transcript_snippets, show_id, episode_id, doc_start_time, doc_end_time, doc_transcript_text):
+        unique_id = self.generate_unique_id(
+            show_id, episode_id, doc_start_time, doc_end_time
+        )
+
+        # Append the transcript snippet to the list
+        snippet = {
+            "_id": unique_id,
+            "show_id": show_id,
+            "episode_id": episode_id,
+            "transcript_text": doc_transcript_text,
+            "start_time": doc_start_time,
+            "end_time": doc_end_time,
+        }
+        transcript_snippets.append(snippet)
 
     def process_document(self, json_data, transcript_snippets, root, file_name, document_size):
 
         # TODO: given a document_size, generate the documents --> 30s, 2 minutes, 5minutes 
-        # TODO 2: check size podcast: if the size is less than half, merge it with previous one. If it's bigger then we make a new document. 
+        document_count = 0
+        document_limit = document_size / 30
+
+        doc_start_time = 0
+        doc_end_time = 0
+        doc_transcript_text = ""
+
+        document_finished = False
 
         show_id = root.split("/")[-1].split("show_")[-1]
         episode_id = file_name.split(".json")[0]
@@ -80,21 +103,42 @@ class PodcastTranscriptIndexer:
                 # Get start time of first word and end time of last word - is in seconds -> Remove the 's' at the end
                 start_time = float(alternative["words"][0]["startTime"][:-1])
                 end_time = float(alternative["words"][-1]["endTime"][:-1])
-                unique_id = self.generate_unique_id(
-                    show_id, episode_id, start_time, end_time
-                )
+                time_len = end_time - start_time
+                
+                # generate and append to the list when document_finished
+                if document_finished:
+                    # check size podcast: if the size is less than half, merge it with previous one. If it's bigger then we make a new document. 
+                    if time_len <= 15:
+                        doc_transcript_text += transcript_text
+                        # extend the end time
+                        doc_end_time = end_time
 
-                # Append the transcript snippet to the list
-                snippet = {
-                    "_id": unique_id,
-                    "show_id": show_id,
-                    "episode_id": episode_id,
-                    "transcript_text": transcript_text,
-                    "start_time": start_time,
-                    "end_time": end_time,
-                }
-                transcript_snippets.append(snippet)
+                    self.append_snippets(transcript_snippets, show_id, episode_id, doc_start_time, doc_end_time, doc_transcript_text)                    
+                    
+                    document_finished = False
+                    if time_len <= 15:
+                        doc_transcript_text = ""
+                        document_count = -1
+                    else:
+                        doc_transcript_text = transcript_text
+                        document_count = 0
+                else:
+                    doc_transcript_text += transcript_text
+                
+                if document_count == 0:
+                    doc_start_time = start_time
+                document_count += 1
 
+                if document_count == document_limit:
+                    document_finished = True
+                
+                # keep the last end time as the document end time
+                doc_end_time = end_time
+
+        #if the remaining snippets cannot reach document size, still generate a document and append
+        if doc_transcript_text != "":
+            self.append_snippets(transcript_snippets, show_id, episode_id, doc_start_time, doc_end_time, doc_transcript_text)
+                
     def bulk_upload_documents(self, documents):
         helpers.bulk(self.client, documents, index=self.index_name)
         print("Bulk upload done")
@@ -106,13 +150,13 @@ if __name__ == "__main__":
 
     CLOUD_ENDPOINT = os.getenv("CLOUD_ENDPOINT")
     API_KEY = os.getenv("API_KEY")
-    folder_path = "./data/testing"
-    index_name = "testing_id_meli3"
+    folder_path = "../data/podcasts-transcripts"
+    index_name = "testing_ning_300"
     size_batch = 50000
 
     indexer = PodcastTranscriptIndexer(CLOUD_ENDPOINT, API_KEY, folder_path, index_name)
     indexer.ensure_index_exists()
-    indexer.process_files(size_batch, document_size=60)
+    indexer.process_files(size_batch, document_size=300)
 
     total_duration = time.time() - start_time_program
     print(f"Indexing Duration: {round(total_duration)} seconds")
