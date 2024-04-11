@@ -25,15 +25,15 @@ const PodcastList = (props) => {
                 <input type="checkbox" name="my-accordion-1" />
                 <div className="collapse-title text-xl font-medium">
                   <div className="float-left">
-                  <div className="avatar float-left">
-                    <div className="w-16 rounded">
-                      <img src="https://daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg" />
+                    <div className="avatar float-left">
+                      <div className="w-16 rounded">
+                        <img src="https://daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="float-left ml-4">
-                    <p className="text-lg">{entry.episode_name}</p>
-                    <p className="text-sm text-gray-400">{entry.show_name}</p>
-                  </div>
+                    <div className="float-left ml-4">
+                      <p className="text-lg">{entry.episode_name}</p>
+                      <p className="text-sm text-gray-400">{entry.show_name}</p>
+                    </div>
                   </div>
                   <div className="float-right">
                     <IconButton
@@ -56,19 +56,33 @@ const PodcastList = (props) => {
                   </div>
                 </div>
                 <div className="collapse-content ">
-                  <p className="text-gray-400 text-sm mb-5 line-clamp-3">{entry.episode_description}</p>
+                  <p className="text-gray-400 text-sm mb-5 line-clamp-3">
+                    {entry.episode_description}
+                  </p>
                   <p className="font-semibold text-basic mb-1.5">Transcript</p>
-                  <p className="font-medium text-sm mb-1 hover:underline cursor-pointer"><a onClick={() =>
-                        window
-                          .open(
-                            `https://open.spotify.com/episode/${
-                              entry.episode_id
-                            }?t=${entry.start_time.split(".")[0]}`,
-                            "_blank"
-                          )
-                          .focus()
-                      }>{toHHMMSS(entry.start_time.split(".")[0])}</a></p>
-                  <p className="text-gray-400 text-sm">{entry.transcript_text}</p>
+                  {entry.snippets.map((snippet) => (
+                    <div className="mb-3">
+                      <p className="font-medium text-sm mb-1 hover:underline cursor-pointer">
+                        <a
+                          onClick={() =>
+                            window
+                              .open(
+                                `https://open.spotify.com/episode/${
+                                  entry.episode_id
+                                }?t=${snippet.start_time.split(".")[0]}`,
+                                "_blank"
+                              )
+                              .focus()
+                          }
+                        >
+                          {toHHMMSS(snippet.start_time.split(".")[0])}
+                        </a>
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        {snippet.transcript_text}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
               <div className="divider my-0"></div>

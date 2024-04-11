@@ -14,7 +14,7 @@ function App() {
       );
       const data = await response.json();
       console.log(data);
-      setEntries(data.unformated_results);
+      setEntries(data.episodes);
     } catch (error) {
       console.error(error);
     }
