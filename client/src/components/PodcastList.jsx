@@ -14,6 +14,10 @@ const toHHMMSS = (secs) => {
     .join(":");
 };
 
+const formatTime = (time) => {
+  return typeof time === "string" ? time.split(".")[0] : time;
+}
+
 const PodcastList = (props) => {
   const { entries } = props;
   return (
@@ -45,7 +49,7 @@ const PodcastList = (props) => {
                           .open(
                             `https://open.spotify.com/episode/${
                               entry.episode_id
-                            }?t=${entry.start_time.split(".")[0]}`,
+                            }?t=${formatTime(snippet.start_time)}`,
                             "_blank"
                           )
                           .focus()
@@ -69,13 +73,13 @@ const PodcastList = (props) => {
                               .open(
                                 `https://open.spotify.com/episode/${
                                   entry.episode_id
-                                }?t=${snippet.start_time.split(".")[0]}`,
+                                }?t=${formatTime(snippet.start_time)}`,
                                 "_blank"
                               )
                               .focus()
                           }
                         >
-                          {toHHMMSS(snippet.start_time.split(".")[0])}
+                          {toHHMMSS(formatTime(snippet.start_time))}
                         </a>
                       </p>
                       <p className="text-gray-400 text-sm">

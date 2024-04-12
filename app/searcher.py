@@ -78,7 +78,7 @@ def format_results(results):
 @app.route('/search')
 def get_incomes():
     search_query = request.args.get('q')
-    search_result = client.search(index="podcast_tests", query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
+    search_result = client.search(index=index_name, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
     hits = search_result["hits"]["hits"]
 
     # Map all hits from the same show and episode to the same dictionary
