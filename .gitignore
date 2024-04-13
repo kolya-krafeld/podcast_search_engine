@@ -32,6 +32,6 @@ yarn-error.log*
 .env
 http_ca.crt
 
-app/__pycache__/*
+__pycache__/
 
 .idea/*
