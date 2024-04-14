@@ -2,6 +2,8 @@ from elasticsearch import Elasticsearch, helpers
 from dotenv import load_dotenv
 import os
 from flask import Flask, jsonify, request
+from flask_cors import CORS, cross_origin
+import requests
 
 app = Flask(__name__)
 
@@ -9,9 +11,12 @@ load_dotenv()
 
 CLOUD_ENDPOINT = os.getenv("CLOUD_ENDPOINT")
 API_KEY = os.getenv("API_KEY")
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
 index_name = "podcast"
 
+# Elasticsearch client
 client = Elasticsearch(
   CLOUD_ENDPOINT, 
   api_key = API_KEY
@@ -27,6 +32,15 @@ query = {
         }
     }
 }
+
+# Get Token for Spotify API (valid for 1h)
+response = requests.post("https://accounts.spotify.com/api/token", data={"grant_type": "client_credentials", "client_id": SPOTIFY_CLIENT_ID, "client_secret": SPOTIFY_CLIENT_SECRET})
+if response.status_code == 404:
+    print("Could not get spotify access token.")
+    print(response.text)
+    exit()
+
+SPOTIFY_ACCESS_TOKEN = response.json()["access_token"]
 
 # Read metadata.tsv file
 # Returns map of episode_filename_prefix to metadata
@@ -51,31 +65,8 @@ def read_metadata():
 
 metadata = read_metadata()
 
-# Turns results dic into list of dictionaries that can be returned as JSON
-def format_results(results):
-    formatted_results = {"episodes": []}
-    for show_id, episodes in results.items():
-        show = {
-            "show_id": show_id,
-            "show_name": episodes["show_name"],
-            "show_description": episodes["show_description"],
-            "publisher": episodes["publisher"]
-        }
-        for episode_id, snippets in episodes.items():
-            if episode_id not in ["show_name", "show_description", "publisher"]:
-                episode = {
-                    "episode_id": episode_id,
-                    "episode_name": snippets[0]["episode_name"],
-                    "episode_description": snippets[0]["episode_description"],
-                    "language": snippets[0]["language"],
-                    "rss_link": snippets[0]["rss_link"],
-                    "transcript_snippets": snippets,
-                    "show": show
-                }
-                formatted_results["episodes"].append(episode)
-    return formatted_results
-
 @app.route('/search')
+@cross_origin(origin='*')
 def get_incomes():
     search_query = request.args.get('q')
     search_result = client.search(index=index_name, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
@@ -83,12 +74,15 @@ def get_incomes():
 
     # Map all hits from the same show and episode to the same dictionary
     episode_map = {}
+    episode_ids = []
     for hit in hits:
-        show_id = hit["_source"]["show_id"]
         episode_id = hit["_source"]["episode_id"]
+        episode_ids.append(episode_id)
         
         if episode_id not in episode_map:
             episode_map[episode_id] = {
+                "show_id": hit["_source"]["show_id"],
+                "episode_id": episode_id,
                 "show_name": metadata[episode_id]["show_name"],
                 "show_description": metadata[episode_id]["show_description"],
                 "publisher": metadata[episode_id]["publisher"],
@@ -106,11 +100,28 @@ def get_incomes():
             "score": hit["_score"],
         }
         episode_map[episode_id]["snippets"].append(snippet)
+        
+    # Get Spotify episodes for each episode_id (get picture uri)
+    episodes_response = requests.get("https://api.spotify.com/v1/episodes?market=SE&ids=" + ",".join(episode_ids), headers={"Authorization": "Bearer " + SPOTIFY_ACCESS_TOKEN})
+    if episodes_response.status_code == 404:
+        print("Could not get spotify episodes.")
+        print(episodes_response.text)
+        exit()
+    
+    episodes = episodes_response.json()["episodes"]
+    for episode in episodes:
+        if episode is None:
+            continue
+        
+        episode_id = episode["id"]
+        if episode_id in episode_map:
+            episode_map[episode_id]["picture_uri"] = episode["images"][1]["url"]
     
     formatted_results = { "episodes": []}
     for episode_id, episode in episode_map.items():
         formatted_results["episodes"].append(episode)
     
     response = jsonify(formatted_results)
-    response.headers.add("Access-Control-Allow-Origin", "*")
+    # response.headers.add("Access-Control-Allow-Origin", "*")
+    # response.headers.add("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
     return response
