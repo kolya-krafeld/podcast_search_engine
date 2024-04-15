@@ -2,5 +2,13 @@
   "lee_cloud": {
     "Cloud_id": "Elastic_test_lee_1:dXMtY2VudHJhbDEuZ2NwLmNsb3VkLmVzLmlvOjQ0MyRhMGFkZjIyYWUxNzU0NTRhYWY5Mjg1MTRhMzg4M2RkOSQ1YWI3YWZjZDlmZTQ0YTliOTEwYWJiODFiM2M1YmQ1ZQ==",
     "API_KEY": "QjlERDI0NEJnTXo1TXpXVHJGMUk6OEdacWRwZWRTUmlUQWdYbnpqTmtGZw=="
+  },
+  "public_cloud": {
+    "CLOUD_ENDPOINT": "https://281516ada0724d61bb1cf0527fe2611e.us-central1.gcp.cloud.es.io/",
+    "API_KEY": "cXBrbnpvNEJ4TUh5S09yVkxBSTY6V1NkT19CdllSb0NITHNKd0trOTVEZw=="
+  },
+  "SPOTIFY": {
+    "SPOTIFY_CLIENT_ID": "700e125faed34b1da9218184966e9e37",
+    "SPOTIFY_CLIENT_SECRET": "c723e2a3faed48a7aeab365bc24f8664"
   }
 }
