@@ -76,9 +76,6 @@ class PodcastTranscriptIndexer:
         """
         Processes json files from the specified directory, and uploads them in batches to Elasticsearch.
         """
-        total_files = 105360
-        current_files = 0
-        milestone = 1  # Set the milestone percentage
         transcript_snippets = []
         for root, _, files in os.walk(self.folder_path):
             # Loop over all json files in the folder
@@ -87,15 +84,11 @@ class PodcastTranscriptIndexer:
                     with open(os.path.join(root, file_name)) as f:
                         # Read content of file
                         json_data = json.load(f)
-                        self.process_document(json_data, transcript_snippets, root, file_name)
-                        #show progress
-                        current_files += 1
-                        progress_percentage = current_files * 100 / total_files
-                        # Check if progress reaches the milestone
-                        if abs(progress_percentage - milestone) < 0.01:  # Tolerance level
-                            print(f"{progress_percentage:.0f}% milestone reached")
-                        milestone += 1
-                        
+                        if self.allow_overlap:
+                            self.process_document_overlap(json_data, transcript_snippets, root, file_name)
+                        else:
+                            self.process_document(json_data, transcript_snippets, root, file_name)
+
                         if len(transcript_snippets) >= self.size_batch:
                             self.bulk_upload_documents(transcript_snippets)
                             transcript_snippets = []
@@ -151,13 +144,6 @@ class PodcastTranscriptIndexer:
                     # extend the end time
                     doc_end_time = end_time
 
-                if self.allow_overlap:
-                    # used to create smoother transitions between transcript snippets by including part of the
-                    # following snippet's text and calculating a midpoint time to adjust the end time of the current snippet
-                    overlap_text, next_midpoint_time = self.generate_overlap(json_data, i)
-                    doc_transcript_text += " " + overlap_text
-                    doc_end_time = next_midpoint_time
-
                 self.append_snippets(
                     transcript_snippets,
                     show_id,
@@ -190,42 +176,131 @@ class PodcastTranscriptIndexer:
                 doc_end_time,
                 doc_transcript_text,
             )
-
-    def generate_overlap(self, json_data, target_pos):
-        """Generates an overlapping snippet from the next transcript entry in the dataset.
+    
+    def process_document_overlap(self, json_data, transcript_snippets, root, file_name):
+        """Processes each JSON document to extract transcript snippets based on the specified document size with different start timing.
 
         Args:
-            json_data (dict): The JSON data containing all results for a single podcast episode.
-            target_pos (int): The position in the results array that points to the next transcript entry from
-            which overlap will be considered.
-
-        Returns:
-            tuple: Containing the text for overlap and the midpoint time for the current transcript snippet.
-            The first element is a string which is approximately half of the next transcript entry.
-            The second element is a float representing the midpoint time of the next transcript entry, used to adjust
-            the current snippet's end time.
+            json_data (dict): The JSON data extracted from a transcript file.
+            transcript_snippets (list): A list of transcript snippets to which new snippets will be added.
+            root (str): The root directory path where the JSON file is located.
+            file_name (str): The name of the JSON file being processed.
 
         """
-        # Code is putted in try catch in case there's no next transcript, in that case it returns empty text and time 0
-        try:
-            next_entry = json_data["results"][target_pos]["alternatives"][0]
+        #keep two sliding windows, one for start time, one for transcript text
+        doc_start_time_queue = []
+        doc_end_time = 0
+        doc_transcript_text_queue = []
 
-            next_transcript_text = next_entry["transcript"]
-            next_start_time = float(next_entry["words"][0]["startTime"][:-1])
-            next_end_time = float(next_entry["words"][-1]["endTime"][:-1])
-            next_time_addition = next_start_time + (next_end_time - next_start_time) / 2
+        show_id = root.split("/")[-1].split("show_")[-1]
+        episode_id = file_name.split(".json")[0]
 
-            overlap_text_length = int(len(next_transcript_text) / 2)
-            character_check = next_transcript_text[overlap_text_length]
-            # Check that the are no splitted words - i.e. that the text finishes in " "
-            while character_check != " ":
-                overlap_text_length += 1
-                character_check = next_transcript_text[overlap_text_length]
+        # Loop over array elements in results
+        for i, result in enumerate(json_data["results"]):
+            # Extract the transcript text
+            alternative = result["alternatives"][0]
 
-            overlap_text = next_transcript_text[:overlap_text_length]
-            return overlap_text, next_time_addition
-        except Exception:
-            return "", 0
+            if "transcript" not in alternative:
+                continue
+
+            transcript_text = alternative["transcript"]
+
+            # Get start time of first word and end time of last word - is in seconds -> Remove the 's' at the end
+            start_time = float(alternative["words"][0]["startTime"][:-1])
+            end_time = float(alternative["words"][-1]["endTime"][:-1])
+            time_len = end_time - start_time
+
+            if doc_transcript_text_queue == []:
+                # initiate the time
+                doc_start_time_queue.append(start_time)
+                doc_end_time = end_time
+
+            doc_cur_size = doc_end_time - doc_start_time_queue[0]
+            # generate and append to the list when the gap increases
+            if abs(self.document_size - doc_cur_size) < abs(self.document_size - doc_cur_size - time_len):
+                # check size podcast: if the size is less than 15, merge it with previous one. 
+                if time_len <= 15:
+                    doc_start_time_queue.append(start_time)
+                    doc_transcript_text_queue.append(transcript_text)
+                    doc_end_time = end_time
+                
+                doc_transcript_text = ''.join(doc_transcript_text_queue)
+
+                self.append_snippets(
+                    transcript_snippets,
+                    show_id,
+                    episode_id,
+                    doc_start_time_queue[0],
+                    doc_end_time,
+                    doc_transcript_text,
+                )
+
+                # If it's bigger then we add it later.
+                if time_len > 15:
+                    doc_end_time = end_time
+                    doc_start_time_queue.append(start_time)
+                    doc_transcript_text_queue.append(transcript_text)
+
+                doc_cur_size = doc_end_time - doc_start_time_queue[0]
+                #remove the begining part until the size of window is smaller than document size
+                while self.document_size < doc_cur_size:
+                    #pop the first element in the queue
+                    doc_start_time_queue.pop(0)
+                    doc_transcript_text_queue.pop(0)
+                    doc_cur_size = doc_end_time - doc_start_time_queue[0]
+            else:
+                doc_start_time_queue.append(start_time)
+                doc_transcript_text_queue.append(transcript_text)
+
+            # keep the last end time as the document end time
+            doc_end_time = end_time
+
+        # if the remaining snippets cannot reach document size, still generate a document and append
+        if doc_transcript_text != "":
+            self.append_snippets(
+                transcript_snippets,
+                show_id,
+                episode_id,
+                doc_start_time_queue[0],
+                doc_end_time,
+                doc_transcript_text,
+            )
+
+    # def generate_overlap(self, json_data, target_pos):
+    #     """Generates an overlapping snippet from the next transcript entry in the dataset.
+
+    #     Args:
+    #         json_data (dict): The JSON data containing all results for a single podcast episode.
+    #         target_pos (int): The position in the results array that points to the next transcript entry from
+    #         which overlap will be considered.
+
+    #     Returns:
+    #         tuple: Containing the text for overlap and the midpoint time for the current transcript snippet.
+    #         The first element is a string which is approximately half of the next transcript entry.
+    #         The second element is a float representing the midpoint time of the next transcript entry, used to adjust
+    #         the current snippet's end time.
+
+    #     """
+    #     # Code is putted in try catch in case there's no next transcript, in that case it returns empty text and time 0
+    #     try:
+    #         next_entry = json_data["results"][target_pos]["alternatives"][0]
+
+    #         next_transcript_text = next_entry["transcript"]
+    #         next_start_time = float(next_entry["words"][0]["startTime"][:-1])
+    #         next_end_time = float(next_entry["words"][-1]["endTime"][:-1])
+    #         next_time_addition = next_start_time + (next_end_time - next_start_time) / 2
+
+    #         overlap_text_length = int(len(next_transcript_text) / 2)
+    #         character_check = next_transcript_text[overlap_text_length]
+    #         # Check that the are no splitted words - i.e. that the text finishes in " "
+    #         while character_check != " ":
+    #             overlap_text_length += 1
+    #             character_check = next_transcript_text[overlap_text_length]
+
+    #         overlap_text = next_transcript_text[:overlap_text_length]
+    #         return overlap_text, next_time_addition
+    #     except Exception:
+    #         return "", 0
 
     def append_snippets(self, transcript_snippets, show_id, episode_id, doc_start_time, doc_end_time, doc_transcript_text):
         """Appends a transcript snippet to the list of snippets for bulk uploading.
@@ -270,13 +345,13 @@ if __name__ == "__main__":
 
     CLOUD_ENDPOINT = os.getenv("CLOUD_ENDPOINT")
     API_KEY = os.getenv("API_KEY")
-    folder_path = "../data/podcasts-transcripts"
-    index_name = "podcast_300"
+    folder_path = "../data/testing_tianning"
+    index_name = "testing_ning_overlap_4"
     size_batch = 50000
 
     # Parameters to play around for experiments 
-    allow_overlap = False
-    document_size = 300  # time in seconds for documents length
+    allow_overlap = True
+    document_size = 120  # time in seconds for documents length
 
     # Initialice and upload documents to Index
     indexer = PodcastTranscriptIndexer(
