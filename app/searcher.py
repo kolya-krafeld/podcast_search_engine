@@ -28,6 +28,19 @@ client = Elasticsearch(
     api_key=API_KEY
 )
 
+# public cloud
+# CLOUD_ID = config["public_cloud"]["CLOUD_ENDPOINT"]
+# API_KEY = config["public_cloud"]["API_KEY"]
+# SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
+# SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
+#
+# client = Elasticsearch(
+#     CLOUD_ID,
+#     api_key=API_KEY
+# )
+#
+# index_name = "podcast"
+
 # Get Token for Spotify API (valid for 1h)
 response = requests.post("https://accounts.spotify.com/api/token",
                          data={"grant_type": "client_credentials", "client_id": SPOTIFY_CLIENT_ID,
@@ -69,9 +82,10 @@ metadata = read_metadata()
 @cross_origin(origin='*')
 def get_incomes():
     search_query = request.args.get('q')
+    print(search_query)
     invoke = chain.invoke({"input": search_query})
     print(invoke)
-    search_result = client.search(index=index_name, query=invoke["query"], size=invoke["size"])
+    search_result = client.search(index=index_name, query=invoke["query"], size=invoke["size"], sort=invoke["sort"])
     hits = search_result["hits"]["hits"]
 
     # Map all hits from the same show and episode to the same dictionary
