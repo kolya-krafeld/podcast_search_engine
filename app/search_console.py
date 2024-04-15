@@ -1,5 +1,6 @@
 from elasticsearch import Elasticsearch
 import json
+from chain import chain
 
 with open("../config.json") as config_file:
     config = json.load(config_file)
@@ -36,12 +37,8 @@ def search_index(index_name, query):
 # Example usage:
 if __name__ == "__main__":
     index_name = "lee_test_1"  # replace with your index name
-    query = {
-        "query": {
-            "match_all": {
-
-            }
-        }
-    }
-    result = search_index(index_name, query)
+    query = "Give me some podcasts"
+    invoke = chain.invoke({"input": query})
+    print(invoke)
+    result = search_index(index_name, invoke)
     print(result)

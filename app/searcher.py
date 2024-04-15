@@ -6,6 +6,8 @@ from flask_cors import CORS, cross_origin
 import requests
 import json
 
+from chain import chain
+
 app = Flask(__name__)
 
 load_dotenv()
@@ -13,29 +15,18 @@ load_dotenv()
 with open("../config.json") as config_file:
     config = json.load(config_file)
 
-CLOUD_ENDPOINT = config["public_cloud"]["CLOUD_ENDPOINT"]
-API_KEY = config["public_cloud"]["API_KEY"]
+CLOUD_ID = config["lee_cloud"]["Cloud_id"]
+API_KEY = config["lee_cloud"]["API_KEY"]
 SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
 SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
 
-index_name = "podcast"
+index_name = "lee_test_1"
 
 # Elasticsearch client
 client = Elasticsearch(
-    CLOUD_ENDPOINT,
+    cloud_id=CLOUD_ID,
     api_key=API_KEY
 )
-
-query = {
-    "query": {
-        "match": {
-            "transcript_text": {
-                "query": "green grass",
-                "operator": "and"
-            }
-        }
-    }
-}
 
 # Get Token for Spotify API (valid for 1h)
 response = requests.post("https://accounts.spotify.com/api/token",
@@ -78,8 +69,9 @@ metadata = read_metadata()
 @cross_origin(origin='*')
 def get_incomes():
     search_query = request.args.get('q')
-    search_result = client.search(index=index_name, query={"match": {"transcript_text": search_query}}, _source={
-        "includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
+    invoke = chain.invoke({"input": search_query})
+    print(invoke)
+    search_result = client.search(index=index_name, query=invoke["query"], size=invoke["size"])
     hits = search_result["hits"]["hits"]
 
     # Map all hits from the same show and episode to the same dictionary
