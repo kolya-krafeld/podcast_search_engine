@@ -76,6 +76,9 @@ class PodcastTranscriptIndexer:
         """
         Processes json files from the specified directory, and uploads them in batches to Elasticsearch.
         """
+        total_files = 105360
+        current_files = 0
+        milestone = 1  # Set the milestone percentage
         transcript_snippets = []
         for root, _, files in os.walk(self.folder_path):
             # Loop over all json files in the folder
@@ -85,6 +88,14 @@ class PodcastTranscriptIndexer:
                         # Read content of file
                         json_data = json.load(f)
                         self.process_document(json_data, transcript_snippets, root, file_name)
+                        #show progress
+                        current_files += 1
+                        progress_percentage = current_files * 100 / total_files
+                        # Check if progress reaches the milestone
+                        if abs(progress_percentage - milestone) < 0.01:  # Tolerance level
+                            print(f"{progress_percentage:.0f}% milestone reached")
+                        milestone += 1
+                        
                         if len(transcript_snippets) >= self.size_batch:
                             self.bulk_upload_documents(transcript_snippets)
                             transcript_snippets = []
@@ -106,7 +117,6 @@ class PodcastTranscriptIndexer:
         doc_start_time = 0
         doc_end_time = 0
         doc_transcript_text = ""
-        doc_cur_size = 0
 
         show_id = root.split("/")[-1].split("show_")[-1]
         episode_id = file_name.split(".json")[0]
@@ -127,8 +137,11 @@ class PodcastTranscriptIndexer:
             time_len = end_time - start_time
 
             if doc_transcript_text == "":
+                # initiate the time
                 doc_start_time = start_time
+                doc_end_time = end_time
 
+            doc_cur_size = doc_end_time - doc_start_time
             # generate and append to the list when the gap increases
             if abs(self.document_size - doc_cur_size) < abs(self.document_size - doc_cur_size - time_len):
                 # check size podcast: if the size is less than half, merge it with previous one. 
@@ -157,15 +170,12 @@ class PodcastTranscriptIndexer:
                 if time_len <= 15:
                     # generate a new document next transcript
                     doc_transcript_text = ""
-                    doc_cur_size = 0
                 else:
                     # generate a new document now
                     doc_transcript_text = transcript_text
-                    doc_cur_size = time_len
                     doc_start_time = start_time
             else:
                 doc_transcript_text += transcript_text
-                doc_cur_size += time_len
 
             # keep the last end time as the document end time
             doc_end_time = end_time
@@ -260,13 +270,13 @@ if __name__ == "__main__":
 
     CLOUD_ENDPOINT = os.getenv("CLOUD_ENDPOINT")
     API_KEY = os.getenv("API_KEY")
-    folder_path = "./data/testing"
-    index_name = "meli_overlap2"
+    folder_path = "../data/podcasts-transcripts"
+    index_name = "podcast_300"
     size_batch = 50000
 
     # Parameters to play around for experiments 
-    allow_overlap = True
-    document_size = 30  # time in seconds for documents length
+    allow_overlap = False
+    document_size = 300  # time in seconds for documents length
 
     # Initialice and upload documents to Index
     indexer = PodcastTranscriptIndexer(
