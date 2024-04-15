@@ -5,6 +5,7 @@ import PodcastList from "./components/PodcastList";
 
 function App() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [snippetLength, setSnippetLength] = useState(30);
   const [entries, setEntries] = useState([]);
 
   const searchPodcastSnippets = async (searchTerm) => {
@@ -21,10 +22,13 @@ function App() {
   };
 
   return (
-    <div className="App min-h-screen p-6">
+    <div className="App min-h-screen p-6 max-w-4xl container mx-auto">
+        <h1 className="text-3xl text-center font-bold text-white mb-6">Podcast Search</h1>
         <SearchBar
         placeholder={"Search for podcast content..."}
         value={searchTerm}
+        snippetLength={snippetLength}
+        setSnippetLength={setSnippetLength}
         handleInput={(e) => setSearchTerm(e.target.value)}
         handleSubmit={(e) => {
           if (e.key === "Enter") {
