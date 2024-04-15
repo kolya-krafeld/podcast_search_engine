@@ -12,29 +12,30 @@ with open("../config.json") as config_file:
     config = json.load(config_file)
 
 # test cloud
-CLOUD_ID = config["lee_cloud"]["Cloud_id"]
-API_KEY = config["lee_cloud"]["API_KEY"]
+# CLOUD_ID = config["lee_cloud"]["Cloud_id"]
+# API_KEY = config["lee_cloud"]["API_KEY"]
+#
+# db = Elasticsearch(
+#     cloud_id=CLOUD_ID,
+#     api_key=API_KEY
+# )
+# INCLUDE_INDICES = ["lee_test_1"]
+
+# public cloud
+CLOUD_ID = config["public_cloud"]["Cloud_id"]
+API_KEY = config["public_cloud"]["API_KEY"]
 
 db = Elasticsearch(
     cloud_id=CLOUD_ID,
     api_key=API_KEY
 )
 
-# public cloud
-# CLOUD_ID = config["public_cloud"]["CLOUD_ENDPOINT"]
-# API_KEY = config["public_cloud"]["API_KEY"]
-#
-# db = Elasticsearch(
-#     CLOUD_ID,
-#     api_key=API_KEY
-# )
-
 # Specify indices to include
-INCLUDE_INDICES = ["lee_test_1"]
+INCLUDE_INDICES = ["podcast"]
 
 # With the Elasticsearch connection created, we can now move on to the chain
 OPENAI_API_KEY = config["OPENAI"]["OPENAI_API_KEY"]
-_model = ChatOpenAI(temperature=0, model="gpt-4-turbo", openai_api_key=OPENAI_API_KEY)
+_model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=OPENAI_API_KEY)
 
 chain = (
         {

@@ -15,31 +15,31 @@ load_dotenv()
 with open("../config.json") as config_file:
     config = json.load(config_file)
 
-CLOUD_ID = config["lee_cloud"]["Cloud_id"]
-API_KEY = config["lee_cloud"]["API_KEY"]
+# CLOUD_ID = config["lee_cloud"]["Cloud_id"]
+# API_KEY = config["lee_cloud"]["API_KEY"]
+# SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
+# SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
+#
+# index_name = "lee_test_1"
+#
+# # Elasticsearch client
+# client = Elasticsearch(
+#     cloud_id=CLOUD_ID,
+#     api_key=API_KEY
+# )
+
+# public cloud
+CLOUD_ID = config["public_cloud"]["Cloud_id"]
+API_KEY = config["public_cloud"]["API_KEY"]
 SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
 SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
 
-index_name = "lee_test_1"
-
-# Elasticsearch client
 client = Elasticsearch(
     cloud_id=CLOUD_ID,
     api_key=API_KEY
 )
 
-# public cloud
-# CLOUD_ID = config["public_cloud"]["CLOUD_ENDPOINT"]
-# API_KEY = config["public_cloud"]["API_KEY"]
-# SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
-# SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
-#
-# client = Elasticsearch(
-#     CLOUD_ID,
-#     api_key=API_KEY
-# )
-#
-# index_name = "podcast"
+index_name = "podcast"
 
 # Get Token for Spotify API (valid for 1h)
 response = requests.post("https://accounts.spotify.com/api/token",
@@ -85,7 +85,7 @@ def get_incomes():
     print(search_query)
     invoke = chain.invoke({"input": search_query})
     print(invoke)
-    search_result = client.search(index=index_name, query=invoke["query"], size=invoke["size"], sort=invoke["sort"])
+    search_result = client.search(index=index_name, query=invoke["query"], size=invoke["size"])
     hits = search_result["hits"]["hits"]
 
     # Map all hits from the same show and episode to the same dictionary
