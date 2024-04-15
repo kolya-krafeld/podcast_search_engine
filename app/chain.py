@@ -31,7 +31,7 @@ db = Elasticsearch(
 )
 
 # Specify indices to include
-INCLUDE_INDICES = ["podcast"]
+INCLUDE_INDICES = ["podcast_30"]
 
 # With the Elasticsearch connection created, we can now move on to the chain
 OPENAI_API_KEY = config["OPENAI"]["OPENAI_API_KEY"]

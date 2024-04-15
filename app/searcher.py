@@ -39,7 +39,7 @@ client = Elasticsearch(
     api_key=API_KEY
 )
 
-index_name = "podcast"
+index_name = "podcast_30"
 
 # Get Token for Spotify API (valid for 1h)
 response = requests.post("https://accounts.spotify.com/api/token",
