@@ -70,8 +70,7 @@ const SearchBar = (props) => {
           onChange={(e) => setSnippetLength(e.target.value)}
         >
           <MenuItem value={30}>30 s</MenuItem>
-          <MenuItem value={60}>1 min</MenuItem>
-          <MenuItem value={180}>3 min</MenuItem>
+          <MenuItem value={120}>2 min</MenuItem>
           <MenuItem value={300}>5 min</MenuItem>
         </Select>
       </FormControl>

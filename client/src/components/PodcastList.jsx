@@ -34,7 +34,7 @@ const getMoreRelevantClips = (snippets) => {
 };
 
 const formatTime = (time) => {
-  return typeof time === "string" ? time.split(".")[0] : time;
+  return typeof time === "string" ? time.split(".")[0] : parseInt(time, 10);
 };
 
 const PodcastList = (props) => {
@@ -44,7 +44,7 @@ const PodcastList = (props) => {
       {entries
         ? entries.map((entry) => (
             <div>
-              <div className="collapse text-white !overflow-visible">
+              <div className="collapse text-white !overflow-visible" toggle={true}>
                 <input type="checkbox" name="my-accordion-1" />
                 <div className="collapse-title text-xl font-medium">
                   <div className="float-right absolute top-3 right-0">
@@ -57,7 +57,7 @@ const PodcastList = (props) => {
                           .open(
                             `https://open.spotify.com/episode/${
                               entry.episode_id
-                            }?t=${entry.start_time.split(".")[0]}`,
+                            }?t=${formatTime(entry.snippets[0].start_time)}`,
                             "_blank"
                           )
                           .focus()
