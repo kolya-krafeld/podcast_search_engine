@@ -34,6 +34,9 @@ API_KEY = config["public_cloud"]["API_KEY"]
 SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
 SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
 
+index_prefix = "podcast_"
+
+
 client = Elasticsearch(
     cloud_id=CLOUD_ID,
     api_key=API_KEY
@@ -82,10 +85,19 @@ metadata = read_metadata()
 @cross_origin(origin='*')
 def search():
     search_query = request.args.get('q')
+    clip_length = request.args.get('length')
+    
     print(search_query)
+    print(clip_length)
+    print("Searching for: " + search_query + " in " + clip_length + " clips")
+    
     invoke = chain.invoke({"input": search_query})
     print(invoke)
-    search_result = client.search(index=index_name, query=invoke["query"], size=invoke["size"])
+    
+    search_result = client.search(index=index_prefix + clip_length, query=invoke["query"], size=invoke["size"])
+  
+    
+    # search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
     hits = search_result["hits"]["hits"]
 
     # Map all hits from the same show and episode to the same dictionary
