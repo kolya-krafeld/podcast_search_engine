@@ -59,7 +59,8 @@ def read_metadata():
         "rss_link": episode_info[5],
         "episode_uri": episode_info[6],
         "episode_name": episode_info[7],
-        "episode_description": episode_info[8]
+        "episode_description": episode_info[8],
+        "duration": episode_info[9],
       }
   return metadata
 
@@ -67,7 +68,7 @@ metadata = read_metadata()
 
 @app.route('/search')
 @cross_origin(origin='*')
-def get_incomes():
+def search():
     search_query = request.args.get('q')
     search_result = client.search(index=index_name, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
     hits = search_result["hits"]["hits"]
@@ -77,45 +78,50 @@ def get_incomes():
     episode_ids = []
     for hit in hits:
         episode_id = hit["_source"]["episode_id"]
-        episode_ids.append(episode_id)
-        
-        if episode_id not in episode_map:
-            episode_map[episode_id] = {
-                "show_id": hit["_source"]["show_id"],
-                "episode_id": episode_id,
-                "show_name": metadata[episode_id]["show_name"],
-                "show_description": metadata[episode_id]["show_description"],
-                "publisher": metadata[episode_id]["publisher"],
-                "episode_name": metadata[episode_id]["episode_name"],
-                "episode_description": metadata[episode_id]["episode_description"],
-                "language": metadata[episode_id]["language"],
-                "rss_link": metadata[episode_id]["rss_link"],
-                "snippets": []
-            }
+        if episode_id in metadata:
+            episode_ids.append(episode_id)
             
-        snippet = {
-            "transcript_text": hit["_source"]["transcript_text"],
-            "start_time": hit["_source"]["start_time"],
-            "end_time": hit["_source"]["end_time"],
-            "score": hit["_score"],
-        }
-        episode_map[episode_id]["snippets"].append(snippet)
+            if episode_id not in episode_map:
+                episode_map[episode_id] = {
+                    "show_id": hit["_source"]["show_id"],
+                    "episode_id": episode_id,
+                    "show_name": metadata[episode_id]["show_name"],
+                    "show_description": metadata[episode_id]["show_description"],
+                    "publisher": metadata[episode_id]["publisher"],
+                    "episode_name": metadata[episode_id]["episode_name"],
+                    "episode_description": metadata[episode_id]["episode_description"],
+                    "language": metadata[episode_id]["language"],
+                    "rss_link": metadata[episode_id]["rss_link"],
+                    "duration": metadata[episode_id]["duration"],
+                    "snippets": []
+                }
+                
+            snippet = {
+                "transcript_text": hit["_source"]["transcript_text"],
+                "start_time": hit["_source"]["start_time"],
+                "end_time": hit["_source"]["end_time"],
+                "score": hit["_score"],
+            }
+            episode_map[episode_id]["snippets"].append(snippet)
         
     # Get Spotify episodes for each episode_id (get picture uri)
-    episodes_response = requests.get("https://api.spotify.com/v1/episodes?market=SE&ids=" + ",".join(episode_ids), headers={"Authorization": "Bearer " + SPOTIFY_ACCESS_TOKEN})
-    if episodes_response.status_code == 404:
-        print("Could not get spotify episodes.")
-        print(episodes_response.text)
-        exit()
-    
-    episodes = episodes_response.json()["episodes"]
-    for episode in episodes:
-        if episode is None:
-            continue
+    if len(episode_ids) > 0:
+        episodes_response = requests.get("https://api.spotify.com/v1/episodes?market=SE&ids=" + ",".join(episode_ids), headers={"Authorization": "Bearer " + SPOTIFY_ACCESS_TOKEN})
+        if episodes_response.status_code == 404:
+            print("Could not get spotify episodes.")
+            print(episodes_response.text)
+            exit()
         
-        episode_id = episode["id"]
-        if episode_id in episode_map:
-            episode_map[episode_id]["picture_uri"] = episode["images"][1]["url"]
+        episodes = episodes_response.json()["episodes"]
+        for episode in episodes:
+            if episode is None:
+                continue
+            
+            episode_id = episode["id"]
+            if episode_id in episode_map:
+                episode_map[episode_id]["picture_uri"] = episode["images"][1]["url"]
+                episode_map[episode_id]["release_date"] = episode["release_date"]
+                episode_map[episode_id]["duration_ms"] = episode["duration_ms"]
     
     formatted_results = { "episodes": []}
     for episode_id, episode in episode_map.items():

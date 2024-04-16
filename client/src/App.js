@@ -23,7 +23,7 @@ function App() {
 
   return (
     <div className="App min-h-screen p-6 max-w-4xl container mx-auto">
-        <h1 className="text-3xl text-center font-bold text-white mb-6">Podcast Search</h1>
+        <h1 className="text-3xl text-center font-bold text-white mb-7 mt-4">🎧&nbsp;&nbsp;Podcast Search</h1>
         <SearchBar
         placeholder={"Search for podcast content..."}
         value={searchTerm}
