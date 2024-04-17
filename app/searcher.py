@@ -4,37 +4,50 @@ import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
 import requests
+import json
+
+from chain import chain
 
 app = Flask(__name__)
 
 load_dotenv()
 
-CLOUD_ENDPOINT = os.getenv("CLOUD_ENDPOINT")
-API_KEY = os.getenv("API_KEY")
-SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
-SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+with open("../config.json") as config_file:
+    config = json.load(config_file)
+
+# CLOUD_ID = config["lee_cloud"]["Cloud_id"]
+# API_KEY = config["lee_cloud"]["API_KEY"]
+# SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
+# SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
+#
+# index_name = "lee_test_1"
+#
+# # Elasticsearch client
+# client = Elasticsearch(
+#     cloud_id=CLOUD_ID,
+#     api_key=API_KEY
+# )
+
+# public cloud
+CLOUD_ID = config["public_cloud"]["Cloud_id"]
+API_KEY = config["public_cloud"]["API_KEY"]
+SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
+SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
 
 index_prefix = "podcast_"
 
-# Elasticsearch client
+
 client = Elasticsearch(
-  CLOUD_ENDPOINT, 
-  api_key = API_KEY
+    cloud_id=CLOUD_ID,
+    api_key=API_KEY
 )
 
-query = {
-    "query": {
-        "match": {
-            "transcript_text": {
-                "query": "green grass",
-                "operator": "and"
-            }
-        }
-    }
-}
+index_name = "podcast_30"
 
 # Get Token for Spotify API (valid for 1h)
-response = requests.post("https://accounts.spotify.com/api/token", data={"grant_type": "client_credentials", "client_id": SPOTIFY_CLIENT_ID, "client_secret": SPOTIFY_CLIENT_SECRET})
+response = requests.post("https://accounts.spotify.com/api/token",
+                         data={"grant_type": "client_credentials", "client_id": SPOTIFY_CLIENT_ID,
+                               "client_secret": SPOTIFY_CLIENT_SECRET})
 if response.status_code == 404:
     print("Could not get spotify access token.")
     print(response.text)
@@ -64,17 +77,26 @@ def read_metadata():
       }
   return metadata
 
+
 metadata = read_metadata()
+
 
 @app.route('/search')
 @cross_origin(origin='*')
 def search():
     search_query = request.args.get('q')
     clip_length = request.args.get('length')
+    
     print(search_query)
     print(clip_length)
     print("Searching for: " + search_query + " in " + clip_length + " clips")
-    search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
+    
+    invoke = chain.invoke({"input": search_query})
+    print(invoke)
+    
+    search_result = client.search(index=index_prefix + clip_length, query=invoke["query"], size=invoke["size"])
+
+    # search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
     hits = search_result["hits"]["hits"]
 
     # Map all hits from the same show and episode to the same dictionary
@@ -84,7 +106,7 @@ def search():
         episode_id = hit["_source"]["episode_id"]
         if episode_id in metadata:
             episode_ids.append(episode_id)
-            
+
             if episode_id not in episode_map:
                 episode_map[episode_id] = {
                     "show_id": hit["_source"]["show_id"],
@@ -99,7 +121,7 @@ def search():
                     "duration": metadata[episode_id]["duration"],
                     "snippets": []
                 }
-                
+
             snippet = {
                 "transcript_text": hit["_source"]["transcript_text"],
                 "start_time": hit["_source"]["start_time"],
@@ -115,12 +137,12 @@ def search():
             print("Could not get spotify episodes.")
             print(episodes_response.text)
             exit()
-        
+
         episodes = episodes_response.json()["episodes"]
         for episode in episodes:
             if episode is None:
                 continue
-            
+
             episode_id = episode["id"]
             if episode_id in episode_map:
                 episode_map[episode_id]["picture_uri"] = episode["images"][1]["url"]
@@ -130,8 +152,12 @@ def search():
     formatted_results = { "episodes": []}
     for episode_id, episode in episode_map.items():
         formatted_results["episodes"].append(episode)
-    
+
     response = jsonify(formatted_results)
     # response.headers.add("Access-Control-Allow-Origin", "*")
     # response.headers.add("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
     return response
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
