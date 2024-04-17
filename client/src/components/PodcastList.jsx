@@ -38,7 +38,7 @@ const formatTime = (time) => {
 };
 
 const PodcastList = (props) => {
-  const { entries } = props;
+  const { entries, showScores } = props;
   return (
     <div>
       {entries
@@ -97,7 +97,7 @@ const PodcastList = (props) => {
                       &nbsp;&nbsp;·&nbsp;&nbsp;{msToTime(entry.duration_ms)}
                     </p>
                   ) : null}
-                  <p className="text-gray-400 text-sm mb-7 line-clamp-3">
+                  <p className="text-gray-400 text-sm mb-7 line-clamp-3 text-justify">
                     {entry.episode_description}
                   </p>
                   {/** Most Relevant Clip */}
@@ -105,6 +105,7 @@ const PodcastList = (props) => {
                     Most Relevant Clip
                   </p>
                   <div className="mb-3">
+                  {showScores ? <p className="font-medium text-sm mb-1 float-right">{entry.snippets[0].score.toFixed(5)}</p> : null }
                     <p className="font-medium text-sm mb-1 hover:underline cursor-pointer">
                       <a
                         onClick={() =>
@@ -121,7 +122,7 @@ const PodcastList = (props) => {
                         {toHHMMSS(formatTime(entry.snippets[0].start_time))}
                       </a>
                     </p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-400 text-sm text-justify">
                       {entry.snippets[0].transcript_text}
                     </p>
                   </div>
@@ -133,6 +134,7 @@ const PodcastList = (props) => {
                       </p>
                       {getMoreRelevantClips(entry.snippets).map((snippet) => (
                         <div className="mb-3">
+                          {showScores ? <p className="font-medium text-sm mb-1 float-right">{entry.snippets[0].score.toFixed(5)}</p> : null }
                           <p className="font-medium text-sm mb-1 hover:underline cursor-pointer">
                             <a
                               onClick={() =>
@@ -149,7 +151,7 @@ const PodcastList = (props) => {
                               {toHHMMSS(formatTime(snippet.start_time))}
                             </a>
                           </p>
-                          <p className="text-gray-400 text-sm">
+                          <p className="text-gray-400 text-sm text-justify">
                             {snippet.transcript_text}
                           </p>
                         </div>

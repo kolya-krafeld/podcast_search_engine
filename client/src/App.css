@@ -20,3 +20,7 @@ code {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.modal-checkbox {
+  margin-top: 0.45rem
+}

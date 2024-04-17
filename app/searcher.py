@@ -15,19 +15,6 @@ load_dotenv()
 with open("../config.json") as config_file:
     config = json.load(config_file)
 
-# CLOUD_ID = config["lee_cloud"]["Cloud_id"]
-# API_KEY = config["lee_cloud"]["API_KEY"]
-# SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
-# SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
-#
-# index_name = "lee_test_1"
-#
-# # Elasticsearch client
-# client = Elasticsearch(
-#     cloud_id=CLOUD_ID,
-#     api_key=API_KEY
-# )
-
 # public cloud
 CLOUD_ID = config["public_cloud"]["Cloud_id"]
 API_KEY = config["public_cloud"]["API_KEY"]
@@ -86,15 +73,19 @@ metadata = read_metadata()
 def search():
     search_query = request.args.get('q')
     clip_length = request.args.get('length')
+    nr_results = request.args.get('results')
+    use_openai = request.args.get('openai')
+    print(use_openai)
     
-    print(search_query)
-    print(clip_length)
-    print("Searching for: " + search_query + " in " + clip_length + " clips")
-    
-    invoke = chain.invoke({"input": search_query})
-    print(invoke)
-    
-    search_result = client.search(index=index_prefix + clip_length, query=invoke["query"], size=invoke["size"])
+    if (use_openai == "true"):
+        print("Using OpenAI")
+        invoke = chain.invoke({"input": search_query})
+        print(invoke)
+        
+        search_result = client.search(index=index_prefix + clip_length, query=invoke["query"], size=nr_results)
+    else:
+        print("Not using OpenAI")
+        search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, size=nr_results)
 
     # search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
     hits = search_result["hits"]["hits"]
