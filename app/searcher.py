@@ -95,8 +95,7 @@ def search():
     print(invoke)
     
     search_result = client.search(index=index_prefix + clip_length, query=invoke["query"], size=invoke["size"])
-  
-    
+
     # search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
     hits = search_result["hits"]["hits"]
 
