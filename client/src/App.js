@@ -7,11 +7,15 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [snippetLength, setSnippetLength] = useState(30);
   const [entries, setEntries] = useState([]);
+  const [showScores, setShowScores] = useState(false);
+  const [useOpenAI, setUseOpenAI] = useState(false);
+  const [nrSearchResults, setNrSearchResults] = useState(10);
+
 
   const searchPodcastSnippets = async (searchTerm) => {
     try {
       const response = await fetch(
-        `http://127.0.0.1:5000/search?q=${searchTerm}&length=${snippetLength}`
+        `http://127.0.0.1:5000/search?q=${searchTerm}&length=${snippetLength}&openai=${useOpenAI}&results=${nrSearchResults}`
       );
       const data = await response.json();
       console.log(data);
@@ -37,9 +41,16 @@ function App() {
             e.preventDefault();
           }
         }}
+        showScores={showScores}
+        setShowScores={setShowScores}
+        useOpenAI={useOpenAI}
+        setUseOpenAI={setUseOpenAI}
+        nrSearchResults={nrSearchResults}
+        setNrSearchResults={setNrSearchResults}
       />
       <PodcastList
         entries={entries}
+        showScores={showScores}
       />
     </div>
   );
