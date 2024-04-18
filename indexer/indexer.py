@@ -211,9 +211,11 @@ class PodcastTranscriptIndexer:
             time_len = end_time - start_time
 
             if doc_transcript_text_queue == []:
-                # initiate the time
-                doc_start_time_queue.append(start_time)
+                #initiate the window
                 doc_end_time = end_time
+                doc_transcript_text_queue.append(transcript_text)
+                doc_start_time_queue.append(start_time)
+                continue
 
             doc_cur_size = doc_end_time - doc_start_time_queue[0]
             # generate and append to the list when the gap increases
@@ -243,7 +245,7 @@ class PodcastTranscriptIndexer:
 
                 doc_cur_size = doc_end_time - doc_start_time_queue[0]
                 #remove the begining part until the size of window is smaller than document size
-                while self.document_size < doc_cur_size:
+                while doc_start_time_queue != [] and doc_transcript_text_queue != [] and self.document_size < doc_cur_size:
                     #pop the first element in the queue
                     doc_start_time_queue.pop(0)
                     doc_transcript_text_queue.pop(0)
@@ -345,13 +347,13 @@ if __name__ == "__main__":
 
     CLOUD_ENDPOINT = os.getenv("CLOUD_ENDPOINT")
     API_KEY = os.getenv("API_KEY")
-    folder_path = "../data/testing_tianning"
-    index_name = "testing_ning_overlap_4"
+    folder_path = "./data/testing_tianning"
+    index_name = "testing_ning_overlap_300_1"
     size_batch = 50000
 
     # Parameters to play around for experiments 
     allow_overlap = True
-    document_size = 120  # time in seconds for documents length
+    document_size = 300  # time in seconds for documents length
 
     # Initialice and upload documents to Index
     indexer = PodcastTranscriptIndexer(
