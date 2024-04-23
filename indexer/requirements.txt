@@ -3,3 +3,4 @@ python-dotenv
 hashlib
 os-sys
 python-dotenv
+langchain-cli
