@@ -2,31 +2,45 @@ from elasticsearch import Elasticsearch, helpers
 from dotenv import load_dotenv
 import os
 from flask import Flask, jsonify, request
+from flask_cors import CORS, cross_origin
+import requests
+import json
+
+from chain import chain
 
 app = Flask(__name__)
 
 load_dotenv()
 
-CLOUD_ENDPOINT = os.getenv("CLOUD_ENDPOINT")
-API_KEY = os.getenv("API_KEY")
+with open("../config.json") as config_file:
+    config = json.load(config_file)
 
-index_name = "podcast"
+# public cloud
+CLOUD_ID = config["public_cloud"]["Cloud_id"]
+API_KEY = config["public_cloud"]["API_KEY"]
+SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
+SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
+
+index_prefix = "podcast_"
+
 
 client = Elasticsearch(
-  CLOUD_ENDPOINT, 
-  api_key = API_KEY
+    cloud_id=CLOUD_ID,
+    api_key=API_KEY
 )
 
-query = {
-    "query": {
-        "match": {
-            "transcript_text": {
-                "query": "green grass",
-                "operator": "and"
-            }
-        }
-    }
-}
+index_name = "podcast_30"
+
+# Get Token for Spotify API (valid for 1h)
+response = requests.post("https://accounts.spotify.com/api/token",
+                         data={"grant_type": "client_credentials", "client_id": SPOTIFY_CLIENT_ID,
+                               "client_secret": SPOTIFY_CLIENT_SECRET})
+if response.status_code == 404:
+    print("Could not get spotify access token.")
+    print(response.text)
+    exit()
+
+SPOTIFY_ACCESS_TOKEN = response.json()["access_token"]
 
 # Read metadata.tsv file
 # Returns map of episode_filename_prefix to metadata
@@ -45,72 +59,96 @@ def read_metadata():
         "rss_link": episode_info[5],
         "episode_uri": episode_info[6],
         "episode_name": episode_info[7],
-        "episode_description": episode_info[8]
+        "episode_description": episode_info[8],
+        "duration": episode_info[9],
       }
   return metadata
 
+
 metadata = read_metadata()
 
-# Turns results dic into list of dictionaries that can be returned as JSON
-def format_results(results):
-    formatted_results = {"episodes": []}
-    for show_id, episodes in results.items():
-        show = {
-            "show_id": show_id,
-            "show_name": episodes["show_name"],
-            "show_description": episodes["show_description"],
-            "publisher": episodes["publisher"]
-        }
-        for episode_id, snippets in episodes.items():
-            if episode_id not in ["show_name", "show_description", "publisher"]:
-                episode = {
-                    "episode_id": episode_id,
-                    "episode_name": snippets[0]["episode_name"],
-                    "episode_description": snippets[0]["episode_description"],
-                    "language": snippets[0]["language"],
-                    "rss_link": snippets[0]["rss_link"],
-                    "transcript_snippets": snippets,
-                    "show": show
-                }
-                formatted_results["episodes"].append(episode)
-    return formatted_results
 
 @app.route('/search')
-def get_incomes():
+@cross_origin(origin='*')
+def search():
     search_query = request.args.get('q')
-    search_result = client.search(index="podcast_tests", query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
+    clip_length = request.args.get('length')
+    nr_results = request.args.get('results')
+    use_openai = request.args.get('openai')
+    print(use_openai)
+    
+    if (use_openai == "true"):
+        print("Using OpenAI")
+        invoke = chain.invoke({"input": search_query})
+        print(invoke)
+        
+        search_result = client.search(index=index_prefix + clip_length, query=invoke["query"], size=nr_results)
+    else:
+        print("Not using OpenAI")
+        search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, size=nr_results)
+
+    # search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
     hits = search_result["hits"]["hits"]
 
     # Map all hits from the same show and episode to the same dictionary
     episode_map = {}
+    episode_ids = []
     for hit in hits:
-        show_id = hit["_source"]["show_id"]
         episode_id = hit["_source"]["episode_id"]
-        
-        if episode_id not in episode_map:
-            episode_map[episode_id] = {
-                "show_name": metadata[episode_id]["show_name"],
-                "show_description": metadata[episode_id]["show_description"],
-                "publisher": metadata[episode_id]["publisher"],
-                "episode_name": metadata[episode_id]["episode_name"],
-                "episode_description": metadata[episode_id]["episode_description"],
-                "language": metadata[episode_id]["language"],
-                "rss_link": metadata[episode_id]["rss_link"],
-                "snippets": []
+        if episode_id in metadata:
+            episode_ids.append(episode_id)
+
+            if episode_id not in episode_map:
+                episode_map[episode_id] = {
+                    "show_id": hit["_source"]["show_id"],
+                    "episode_id": episode_id,
+                    "show_name": metadata[episode_id]["show_name"],
+                    "show_description": metadata[episode_id]["show_description"],
+                    "publisher": metadata[episode_id]["publisher"],
+                    "episode_name": metadata[episode_id]["episode_name"],
+                    "episode_description": metadata[episode_id]["episode_description"],
+                    "language": metadata[episode_id]["language"],
+                    "rss_link": metadata[episode_id]["rss_link"],
+                    "duration": metadata[episode_id]["duration"],
+                    "snippets": []
+                }
+
+            snippet = {
+                "transcript_text": hit["_source"]["transcript_text"],
+                "start_time": hit["_source"]["start_time"],
+                "end_time": hit["_source"]["end_time"],
+                "score": hit["_score"],
             }
-            
-        snippet = {
-            "transcript_text": hit["_source"]["transcript_text"],
-            "start_time": hit["_source"]["start_time"],
-            "end_time": hit["_source"]["end_time"],
-            "score": hit["_score"],
-        }
-        episode_map[episode_id]["snippets"].append(snippet)
+            episode_map[episode_id]["snippets"].append(snippet)
+        
+    # Get Spotify episodes for each episode_id (get picture uri)
+    if len(episode_ids) > 0:
+        episodes_response = requests.get("https://api.spotify.com/v1/episodes?market=SE&ids=" + ",".join(episode_ids), headers={"Authorization": "Bearer " + SPOTIFY_ACCESS_TOKEN})
+        if episodes_response.status_code == 404:
+            print("Could not get spotify episodes.")
+            print(episodes_response.text)
+            exit()
+
+        episodes = episodes_response.json()["episodes"]
+        for episode in episodes:
+            if episode is None:
+                continue
+
+            episode_id = episode["id"]
+            if episode_id in episode_map:
+                episode_map[episode_id]["picture_uri"] = episode["images"][1]["url"]
+                episode_map[episode_id]["release_date"] = episode["release_date"]
+                episode_map[episode_id]["duration_ms"] = episode["duration_ms"]
     
     formatted_results = { "episodes": []}
     for episode_id, episode in episode_map.items():
         formatted_results["episodes"].append(episode)
-    
+
     response = jsonify(formatted_results)
-    response.headers.add("Access-Control-Allow-Origin", "*")
+    # response.headers.add("Access-Control-Allow-Origin", "*")
+    # response.headers.add("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
     return response
+
+
+if __name__ == '__main__':
+    app.run(debug=True)

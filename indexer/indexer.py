@@ -24,7 +24,7 @@ class PodcastTranscriptIndexer:
             document_size (int): The size in seconds for each document indexed.
             allow_overlap (bool): A flag to enable or disable the inclusion of overlapping text between 2 documents. 
         """
-        self.client = Elasticsearch(cloud_endpoint, api_key=api_key)
+        self.client = Elasticsearch(cloud_id=cloud_endpoint, api_key=api_key)
         self.folder_path = folder_path
         self.index_name = index_name
         self.size_batch = size_batch
@@ -309,7 +309,7 @@ class PodcastTranscriptIndexer:
 if __name__ == "__main__":
     load_dotenv()
     start_time_program = time.time()
-
+    
     CLOUD_ENDPOINT = os.getenv("CLOUD_ENDPOINT")
     API_KEY = os.getenv("API_KEY")
     folder_path = "data/podcast-transcripts"
@@ -330,8 +330,8 @@ if __name__ == "__main__":
         document_size,
         allow_overlap,
     )
-    indexer.ensure_index_exists()
-    indexer.process_files()
+    # indexer.ensure_index_exists()
+    # indexer.process_files()
 
     total_duration = time.time() - start_time_program
     print(f"Indexing Duration: {round(total_duration)} seconds")
