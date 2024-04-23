@@ -330,8 +330,9 @@ if __name__ == "__main__":
         document_size,
         allow_overlap,
     )
-    # indexer.ensure_index_exists()
-    # indexer.process_files()
+
+    indexer.ensure_index_exists()
+    indexer.process_files()
 
     total_duration = time.time() - start_time_program
     print(f"Indexing Duration: {round(total_duration)} seconds")
