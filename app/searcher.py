@@ -7,6 +7,7 @@ import requests
 import json
 
 from chain import chain
+from lexical_query import build_es_query
 
 app = Flask(__name__)
 
@@ -77,7 +78,7 @@ def search():
     use_openai = request.args.get('openai')
     print(use_openai)
     
-    if (use_openai == "true"):
+    if use_openai == "true":
         print("Using OpenAI")
         invoke = chain.invoke({"input": search_query})
         print(invoke)
@@ -85,7 +86,11 @@ def search():
         search_result = client.search(index=index_prefix + clip_length, query=invoke["query"], size=nr_results)
     else:
         print("Not using OpenAI")
-        search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, size=nr_results)
+        query_body = build_es_query(search_query, "wildcard", "transcript_text")
+        print(query_body)
+        search_result = client.search(index=index_prefix + clip_length, body=query_body, size=nr_results)
+
+        # search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, size=nr_results)
 
     # search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
     hits = search_result["hits"]["hits"]
