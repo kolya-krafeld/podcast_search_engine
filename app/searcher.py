@@ -17,7 +17,7 @@ with open("../config.json") as config_file:
     config = json.load(config_file)
 
 # public cloud
-CLOUD_ID = config["public_cloud"]["Cloud_id"]
+CLOUD_ID = config["public_cloud"]["CLOUD_ID"]
 API_KEY = config["public_cloud"]["API_KEY"]
 SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
 SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
@@ -76,7 +76,7 @@ def search():
     clip_length = request.args.get('length')
     nr_results = request.args.get('results')
     use_openai = request.args.get('openai')
-    print(use_openai)
+    # print(use_openai)
     
     if use_openai == "true":
         print("Using OpenAI")
@@ -86,7 +86,7 @@ def search():
         search_result = client.search(index=index_prefix + clip_length, query=invoke["query"], size=nr_results)
     else:
         print("Not using OpenAI")
-        query_body = build_es_query(search_query, "wildcard", "transcript_text")
+        query_body = build_es_query(search_query,  "transcript_text")
         print(query_body)
         search_result = client.search(index=index_prefix + clip_length, body=query_body, size=nr_results)
 
