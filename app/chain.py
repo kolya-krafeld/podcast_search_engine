@@ -11,18 +11,8 @@ import json
 with open("../config.json") as config_file:
     config = json.load(config_file)
 
-# test cloud
-# CLOUD_ID = config["lee_cloud"]["Cloud_id"]
-# API_KEY = config["lee_cloud"]["API_KEY"]
-#
-# db = Elasticsearch(
-#     cloud_id=CLOUD_ID,
-#     api_key=API_KEY
-# )
-# INCLUDE_INDICES = ["lee_test_1"]
-
 # public cloud
-CLOUD_ID = config["public_cloud"]["Cloud_id"]
+CLOUD_ID = config["public_cloud"]["CLOUD_ID"]
 API_KEY = config["public_cloud"]["API_KEY"]
 
 db = Elasticsearch(
