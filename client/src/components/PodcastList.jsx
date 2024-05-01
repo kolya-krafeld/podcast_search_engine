@@ -138,7 +138,7 @@ const PodcastList = (props) => {
                       </p>
                       {getMoreRelevantClips(entry.snippets).map((snippet) => (
                         <div className="mb-3">
-                          {showScores ? <p className="font-medium text-sm mb-1 float-right">{entry.snippets[0].score.toFixed(5)}</p> : null }
+                          {showScores ? <p className="font-medium text-sm mb-1 float-right">{snippet.score.toFixed(5)}</p> : null }
                           <p className="font-medium text-sm mb-1 hover:underline cursor-pointer">
                             <a
                               onClick={() =>
