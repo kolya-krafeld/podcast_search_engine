@@ -38,8 +38,15 @@ const formatTime = (time) => {
 };
 
 const highlightMatchingText = (text, searchQuery) => {
-  let textToMatch = searchQuery.split(" ");
+  let textToMatch;
   let matching;
+  if (searchQuery.includes('"')) {
+    // Phrase query
+    searchQuery = searchQuery.replace(/['"]+/g, "");
+    textToMatch = [searchQuery];
+  } else {
+    textToMatch = searchQuery.split(" ");
+  }
 
   const matchRegex = RegExp(textToMatch.join("|"), "ig");
 
