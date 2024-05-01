@@ -51,6 +51,7 @@ function App() {
       <PodcastList
         entries={entries}
         showScores={showScores}
+        searchTerm={searchTerm}
       />
     </div>
   );

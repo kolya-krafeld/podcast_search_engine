@@ -37,14 +37,36 @@ const formatTime = (time) => {
   return typeof time === "string" ? time.split(".")[0] : parseInt(time, 10);
 };
 
+const highlightMatchingText = (text, searchQuery) => {
+  let textToMatch = searchQuery.split(" ");
+  let matching;
+
+  const matchRegex = RegExp(textToMatch.join("|"), "ig");
+
+  // Matches array needed to maintain the correct letter casing
+  const matches = [...text.matchAll(matchRegex)];
+  console.log(matches);
+  return text.split(matchRegex).map((nonBoldText, index, arr) => (
+    <React.Fragment key={index}>
+      {nonBoldText}
+      {index + 1 !== arr.length && (
+        <span className="text-gray-300 font-medium">{matches[index]}</span>
+      )}
+    </React.Fragment>
+  ));
+};
+
 const PodcastList = (props) => {
-  const { entries, showScores } = props;
+  const { entries, showScores, searchTerm } = props;
   return (
     <div>
       {entries
         ? entries.map((entry) => (
             <div>
-              <div className="collapse text-white !overflow-visible" toggle={true}>
+              <div
+                className="collapse text-white !overflow-visible"
+                toggle={true}
+              >
                 <input type="checkbox" name="my-accordion-1" />
                 <div className="collapse-title text-xl font-medium">
                   <div className="float-right absolute top-3 right-0">
@@ -98,9 +120,7 @@ const PodcastList = (props) => {
                     </p>
                   ) : null}
 
-                  <p className="text-lg episode_name">
-                    {entry.episode_name}
-                  </p>
+                  <p className="text-lg episode_name">{entry.episode_name}</p>
                   <p className="text-gray-400 text-sm mb-7 line-clamp-3 text-justify">
                     {entry.episode_description}
                   </p>
@@ -109,7 +129,11 @@ const PodcastList = (props) => {
                     Most Relevant Clip
                   </p>
                   <div className="mb-3">
-                  {showScores ? <p className="font-medium text-sm mb-1 float-right">{entry.snippets[0].score.toFixed(5)}</p> : null }
+                    {showScores ? (
+                      <p className="font-medium text-sm mb-1 float-right">
+                        {entry.snippets[0].score.toFixed(5)}
+                      </p>
+                    ) : null}
                     <p className="font-medium text-sm mb-1 hover:underline cursor-pointer">
                       <a
                         onClick={() =>
@@ -127,7 +151,10 @@ const PodcastList = (props) => {
                       </a>
                     </p>
                     <p className="text-gray-400 text-sm text-justify">
-                      {entry.snippets[0].transcript_text}
+                      {highlightMatchingText(
+                        entry.snippets[0].transcript_text,
+                        searchTerm
+                      )}
                     </p>
                   </div>
                   {/** Other relevant clips */}
@@ -138,7 +165,11 @@ const PodcastList = (props) => {
                       </p>
                       {getMoreRelevantClips(entry.snippets).map((snippet) => (
                         <div className="mb-3">
-                          {showScores ? <p className="font-medium text-sm mb-1 float-right">{snippet.score.toFixed(5)}</p> : null }
+                          {showScores ? (
+                            <p className="font-medium text-sm mb-1 float-right">
+                              {snippet.score.toFixed(5)}
+                            </p>
+                          ) : null}
                           <p className="font-medium text-sm mb-1 hover:underline cursor-pointer">
                             <a
                               onClick={() =>
@@ -156,7 +187,10 @@ const PodcastList = (props) => {
                             </a>
                           </p>
                           <p className="text-gray-400 text-sm text-justify">
-                            {snippet.transcript_text}
+                            {highlightMatchingText(
+                              snippet.transcript_text,
+                              searchTerm
+                            )}
                           </p>
                         </div>
                       ))}
