@@ -19,11 +19,11 @@ with open("../config.json") as config_file:
 # public cloud
 CLOUD_ID = config["public_cloud"]["CLOUD_ID"]
 API_KEY = config["public_cloud"]["API_KEY"]
+#"API_KEY": "V0RURkhJOEItUlpDVVFEbll2NVQ6bDZ5YnVJa2pSQ0d0Y3pBcWJFU05aQQ=="
 SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
 SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
 
 index_prefix = "podcast_"
-
 
 client = Elasticsearch(
     cloud_id=CLOUD_ID,
@@ -43,27 +43,28 @@ if response.status_code == 404:
 
 SPOTIFY_ACCESS_TOKEN = response.json()["access_token"]
 
+
 # Read metadata.tsv file
 # Returns map of episode_filename_prefix to metadata
 def read_metadata():
-  metadata = {}
-  with open("../data/metadata.tsv", "r") as file:
-    lines = file.readlines()
-    for line in lines:
-      episode_info = line.strip().split("\t")
-      episode_filename_prefix = episode_info[-1]
-      metadata[episode_filename_prefix] = {
-        "show_name": episode_info[1],
-        "show_description": episode_info[2],
-        "publisher": episode_info[3],
-        "language": episode_info[4],
-        "rss_link": episode_info[5],
-        "episode_uri": episode_info[6],
-        "episode_name": episode_info[7],
-        "episode_description": episode_info[8],
-        "duration": episode_info[9],
-      }
-  return metadata
+    metadata = {}
+    with open("../data/metadata.tsv", "r") as file:
+        lines = file.readlines()
+        for line in lines:
+            episode_info = line.strip().split("\t")
+            episode_filename_prefix = episode_info[-1]
+            metadata[episode_filename_prefix] = {
+                "show_name": episode_info[1],
+                "show_description": episode_info[2],
+                "publisher": episode_info[3],
+                "language": episode_info[4],
+                "rss_link": episode_info[5],
+                "episode_uri": episode_info[6],
+                "episode_name": episode_info[7],
+                "episode_description": episode_info[8],
+                "duration": episode_info[9],
+            }
+    return metadata
 
 
 metadata = read_metadata()
@@ -77,22 +78,23 @@ def search():
     nr_results = request.args.get('results')
     use_openai = request.args.get('openai')
     # print(use_openai)
-    
+
     if use_openai == "true":
         print("Using OpenAI")
         invoke = chain.invoke({"input": search_query})
         print(invoke)
-        
+
         search_result = client.search(index=index_prefix + clip_length, query=invoke["query"], size=nr_results)
     else:
         print("Not using OpenAI")
-        query_body = build_es_query(search_query,  "transcript_text")
+        query_body = build_es_query(search_query, "transcript_text")
         print(query_body)
+        print(nr_results)
         search_result = client.search(index=index_prefix + clip_length, body=query_body, size=nr_results)
 
-        # search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, size=nr_results)
-
-    # search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text": search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]}, size=10)
+    # search_result = client.search(index=index_prefix + clip_length, query={"match": {"transcript_text":
+    # search_query}}, _source={"includes": ["show_id", "episode_id", "transcript_text", "start_time", "end_time"]},
+    # size=10)
     hits = search_result["hits"]["hits"]
 
     # Map all hits from the same show and episode to the same dictionary
@@ -125,10 +127,11 @@ def search():
                 "score": hit["_score"],
             }
             episode_map[episode_id]["snippets"].append(snippet)
-        
+
     # Get Spotify episodes for each episode_id (get picture uri)
     if len(episode_ids) > 0:
-        episodes_response = requests.get("https://api.spotify.com/v1/episodes?market=SE&ids=" + ",".join(episode_ids), headers={"Authorization": "Bearer " + SPOTIFY_ACCESS_TOKEN})
+        episodes_response = requests.get("https://api.spotify.com/v1/episodes?market=SE&ids=" + ",".join(episode_ids),
+                                         headers={"Authorization": "Bearer " + SPOTIFY_ACCESS_TOKEN})
         if episodes_response.status_code == 404:
             print("Could not get spotify episodes.")
             print(episodes_response.text)
@@ -144,8 +147,8 @@ def search():
                 episode_map[episode_id]["picture_uri"] = episode["images"][1]["url"]
                 episode_map[episode_id]["release_date"] = episode["release_date"]
                 episode_map[episode_id]["duration_ms"] = episode["duration_ms"]
-    
-    formatted_results = { "episodes": []}
+
+    formatted_results = {"episodes": []}
     for episode_id, episode in episode_map.items():
         formatted_results["episodes"].append(episode)
 

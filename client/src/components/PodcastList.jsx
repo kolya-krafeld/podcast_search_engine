@@ -97,6 +97,10 @@ const PodcastList = (props) => {
                       &nbsp;&nbsp;·&nbsp;&nbsp;{msToTime(entry.duration_ms)}
                     </p>
                   ) : null}
+
+                  <p className="text-lg episode_name">
+                    {entry.episode_name}
+                  </p>
                   <p className="text-gray-400 text-sm mb-7 line-clamp-3 text-justify">
                     {entry.episode_description}
                   </p>
