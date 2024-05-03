@@ -62,7 +62,9 @@ To set up and use our indexing script with Elasticsearch, follow these steps:
    - Save your `API_KEY` and the Elasticsearch endpoint `CLOUD_ENDPOINT` in a local `.env`.
 5. **Prepare Data:**
    - Place your data files under `data/podcast-transcripts` in preparation for indexing.
-6. **Run the Indexer Script:**
+6. **Configure Indexing Parameters:**
+   - Modify variables in the `indexer.py` script before running it. Set `allow_overlap` to determine if podcast snippets can overlap, adjust `document_size` to control the snippet length in seconds, and specify `index_name` to name the Elasticsearch index where your data will be stored. These settings allow for customization based on your specific indexing needs.
+8. **Run the Indexer Script:**
    - Execute the script by running `python indexer.py` from the `indexer` directory to start the indexing process.
 
  
