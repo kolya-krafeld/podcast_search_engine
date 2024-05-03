@@ -48,15 +48,22 @@ flask --app searcher run # start the middleware
 ````
 The middle-ware will be availbale at `http://127.0.0.1:5000`.
 
-
 ## Indexing
 
-To index our search index in Elasticsearch we used the Python script in the `indexer` directory.
-**Requirements:** Make sure `Python` and `pip`are installed locally.
-Make sure to import the following pip modules: `elasticsearch, python-dotenv, os-sys, hashlib`
-
-Run the `indexer.py` script for indexing.
-
+To set up and use our indexing script with Elasticsearch, follow these steps:
+1. **Prerequisites:**
+   - Ensure `Python` and `pip` (Python's package installer) are installed on your computer.
+2. **Install Required Libraries:**
+   - Install the necessary Python libraries by running `pip install -r requirements.txt` from the `indexer` directory. This command will install the libraries listed in the `requirements.txt` file, including `elasticsearch`, `python-dotenv`, `os-sys`, and `hashlib`.
+3. **Set Up Elasticsearch:**
+   - Create a [Cloud Elastic account](https://www.elastic.co/).
+   - Once your account is set up, create a project and retrieve your Endpoint & API keys.
+4. **Configure Environment Variables:**
+   - Save your `API_KEY` and the Elasticsearch endpoint `CLOUD_ENDPOINT` in a local `.env`.
+5. **Prepare Data:**
+   - Place your data files under `data/podcast-transcripts` in preparation for indexing.
+6. **Run the Indexer Script:**
+   - Execute the script by running `python indexer.py` from the `indexer` directory to start the indexing process.
 
  
 
