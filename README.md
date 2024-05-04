@@ -72,7 +72,9 @@ The front-end will be available at `localhost:3000`.
 The middle-ware was developed with Python and Flask.
 
 **Requirements:** Make sure `Python`, `pip` and `flask` are installed locally.
-Make sure to import the following pip modules: `elasticsearch, dotenv, flask, flask_cors, json, requests, openai, langchain`
+Make sure to import the following pip modules: `elasticsearch, dotenv, flask, flask_cors, json, requests, openai, langchain`.
+
+The search engine utilizes the [Spotify Web API](https://developer.spotify.com/documentation/web-api) to retrieve additional information about the podcast episodes and get the show images. To use the Spotify API create a [Spotify developer application](https://developer.spotify.com/documentation/web-api/concepts/apps) and get the app credentials. Add your `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` to your local `.env` file. 
 
 To start the middle-ware locally run:
 ````
