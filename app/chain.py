@@ -5,15 +5,15 @@ from langchain_core.pydantic_v1 import BaseModel
 
 from elastic_index_info import get_indices_infos
 from prompts import DSL_PROMPT
+import os
+from dotenv import load_dotenv
 
 import json
 
-with open("../config.json") as config_file:
-    config = json.load(config_file)
+load_dotenv()
 
-# public cloud
-CLOUD_ID = config["public_cloud"]["CLOUD_ID"]
-API_KEY = config["public_cloud"]["API_KEY"]
+CLOUD_ID = os.getenv("CLOUD_ID")
+API_KEY = os.getenv("API_KEY")
 
 db = Elasticsearch(
     cloud_id=CLOUD_ID,
@@ -24,7 +24,7 @@ db = Elasticsearch(
 INCLUDE_INDICES = ["podcast_120"]
 
 # With the Elasticsearch connection created, we can now move on to the chain
-OPENAI_API_KEY = config["OPENAI"]["OPENAI_API_KEY"]
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 _model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=OPENAI_API_KEY)
 
 chain = (

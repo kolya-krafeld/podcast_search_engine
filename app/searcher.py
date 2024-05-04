@@ -13,15 +13,10 @@ app = Flask(__name__)
 
 load_dotenv()
 
-with open("../config.json") as config_file:
-    config = json.load(config_file)
-
-# public cloud
-CLOUD_ID = config["public_cloud"]["CLOUD_ID"]
-API_KEY = config["public_cloud"]["API_KEY"]
-#"API_KEY": "V0RURkhJOEItUlpDVVFEbll2NVQ6bDZ5YnVJa2pSQ0d0Y3pBcWJFU05aQQ=="
-SPOTIFY_CLIENT_ID = config["SPOTIFY"]["SPOTIFY_CLIENT_ID"]
-SPOTIFY_CLIENT_SECRET = config["SPOTIFY"]["SPOTIFY_CLIENT_SECRET"]
+CLOUD_ID = os.getenv("CLOUD_ID")
+API_KEY = os.getenv("API_KEY")
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
 index_prefix = "podcast_"
 
