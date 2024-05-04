@@ -19,9 +19,9 @@ Clicking the Settings icon ⚙️ in the search bar the user can choose between 
 - **Use OpenAI Query Optimization**: Resolves the query by calling a OpenAI API and improving the query. This allows users to ask requests in natural language form, e.g. `Recommend me something about Kendrick`. It can increase the query time because the OpenAPI needs to be called.
 - **Number of search results**: Number of relevant podcast clips that will be shown. Up to 50. The clips are grouped together by episode, therefore there might be less episodes visible than clips.
 
-### Lexical Search  
+### Boolean Search  
 
-When LLM query optimization is turned off, the search engine performs a lexical search. The search engine then supports the following types of search:
+When OpenAI query optimization is turned off, the search engine performs a boolean search. The search engine then supports the following types of search:
 
 - **Intersection Search**: Default input.
 
